@@ -29,15 +29,15 @@ class Certificate:
     # Creates the Certificate file
     def generateFile(self, issuing_keyset):
         text = ("TLS version: " + self.tls_version +
-                         "\n Información sobre la organización\n Organización: " + self.organization_name +
-                         "\n País: " + self.organization_country +
+                         "\n Informacion sobre la organizacion\n Organizacion: " + self.organization_name +
+                         "\n Pais: " + self.organization_country +
                          "\n Localidad: " + self.organization_location +
                          "\n Dominio: " + self.organization_domain +
-                         "\nInformación sobre la organización emisora\n Organización: " + ISSUING_NAME +
-                         "\n País: " + ISSUING_COUNTRY +
+                         "\nInformacion sobre la organizacion emisora\n Organizacion: " + ISSUING_NAME +
+                         "\n Pais: " + ISSUING_COUNTRY +
                          "\nValidez\n No antes: " + str(self.issue_date) +
                          "\n No despues: " + str(self.expiration_date) +
-                         "\nInformación de clave pública\n Algoritmo: ")
+                         "\nInformacion de clave publica\n Algoritmo: ")
 
         # Creating the hash object for the signature and the Fingerprints
         public_key_to_sign_hash = h.sha256()
@@ -45,7 +45,7 @@ class Certificate:
         second_fingerprint_sha256 = h.sha256()
         
         if(self.tls_version == "TLS 1.2"):
-            text = text + ("RSA\n Tamaño de la clave: 2048\n Exponente: 65537\n Módulo: " + hex(self.keyset.n) +
+            text = text + ("RSA\n Tamano de la clave: 2048\n Exponente: 65537\n Modulo: " + hex(self.keyset.n) +
                          "\nFirma: ")
 
             # Text that will be signed
@@ -60,7 +60,7 @@ class Certificate:
             text = text + str(hex(self.signature.signature))
                          
         elif(self.tls_version == "TLS 1.3"):
-            text = text + ("ECC\n Clave pública: " + str(self.keyset.publicKey) + "\nFirma: ")
+            text = text + ("ECC\n Clave publica: " + str(self.keyset.publicKey) + "\nFirma: ")
 
             text_to_sign = str(self.keyset.publicKey)
 
@@ -110,13 +110,13 @@ class Certificate:
                 if((issuing_date > dt.datetime.now()) or (expiration_date < dt.datetime.now())):
                     valid_dates = False
 
-            if("Módulo:" in content[i]):
-                n = content[i].replace(" Módulo: ", "").replace("\n", "")
+            if("Modulo:" in content[i]):
+                n = content[i].replace(" Modulo: ", "").replace("\n", "")
                 text_to_hash_sha1 = text_to_hash_sha1 + content[i].replace(" ", "").replace("\n", "")
                 continue
 
-            if("Clave pública:" in content[i]):
-                publicKey = content[i].replace(" Clave pública: ", "").replace("\n", "")
+            if("Clave publica:" in content[i]):
+                publicKey = content[i].replace(" Clave publica: ", "").replace("\n", "")
                 
             if("Firma:" in content[i]):
                 if(tls_version == "TLS 1.2"):

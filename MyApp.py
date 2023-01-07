@@ -104,12 +104,12 @@ class App:
         # If TLS version is TLS 1.2, it creates the file this way
         if(tls_version == "TLS 1.2"):
             keyset = rsa.RSA()
-            text = "RSA\nExponente: " + str(keyset.e) + "\nMódulo: " + str(keyset.n) + "\nClave privada: " + str(keyset.d)
+            text = "RSA\nExponente: " + str(keyset.e) + "\nModulo: " + str(keyset.n) + "\nClave privada: " + str(keyset.d)
             
         # If TLS version is TLS 1.2, it creates the file this way
         elif(tls_version == "TLS 1.3"):
            keyset = ecc.S256EC_keyset()
-           text = "ECC\nClave pública: " + str(keyset.publicKey) + "\nClave privada: " + str(keyset.privateKey)
+           text = "ECC\nClave publica: " + str(keyset.publicKey) + "\nClave privada: " + str(keyset.privateKey)
 
         ISSUING_KEYSET = keyset
         
@@ -135,7 +135,7 @@ class App:
             # Exponent
             e = int(keys_content[1].replace("Exponente: ", "").replace("\n", ""))
             # Module
-            n = int(keys_content[2].replace("Módulo: ", "").replace("\n", ""))
+            n = int(keys_content[2].replace("Modulo: ", "").replace("\n", ""))
             # Private Key
             d = int(keys_content[3].replace("Clave privada: ", ""))
 
@@ -145,7 +145,7 @@ class App:
         # If TLS version is TLS 1.3, it reads the file this way
         elif(tls_version == "TLS 1.3"):
             # Public Key
-            line = keys_content[1].replace("Clave pública: S256Point(", "").replace(")\n", "").split(", ")
+            line = keys_content[1].replace("Clave publica: S256Point(", "").replace(")\n", "").split(", ")
             publicKey_x = int(line[0], 16)
             publicKey_y = int(line[1], 16)
             publicKey = ecc.S256Point(publicKey_x, publicKey_y)
