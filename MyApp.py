@@ -31,7 +31,7 @@ class App:
         self.organization_location = StringVar()
         self.organization_domain = StringVar()
         self.tls_version = StringVar()
-        self.tls_versions = ["TLS 1.2", "TLS 1.3"]
+        self.tls_versions = ["TLS 1.2", "TLS 1.3", "TLS 1.5", "TLS 2.0"]
         self.tls_version.set(self.tls_versions[0])
         self.place_items()
         # Read the Keys File
@@ -74,7 +74,7 @@ class App:
     def generate(self):
         if(self.tls_version.get() == "TLS 1.2"):
             cert.Certificate(self.organization_name.get(), self.organization_country.get(), self.organization_location.get(), self.organization_domain.get(), self.tls_version.get(), ISSUING_KEYSET)
-        elif(self.tls_version.get() == "TLS 1.3"):
+        elif(self.tls_version.get() == "TLS 1.3" or self.tls_version.get() == "TLS 1.5"):
              cert.Certificate(self.organization_name.get(), self.organization_country.get(), self.organization_location.get(), self.organization_domain.get(), self.tls_version.get(), ISSUING_KEYSET)
     # Verifies a Certificate file. It calls the function verify defined in the Certificate class
     def verify(self):
@@ -84,7 +84,7 @@ class App:
         cert_content = file.readlines()
         file.close()
 
-        verified = cert.Certificate.verify(cert_content, ISSUING_KEYSET.publicKey, tls_version = self.tls_version.get()) if (self.tls_version.get() == "TLS 1.3") else cert.Certificate.verify(cert_content, ISSUING_KEYSET.n, tls_version = self.tls_version.get())
+        verified = cert.Certificate.verify(cert_content, ISSUING_KEYSET.publicKey, tls_version = self.tls_version.get()) if (self.tls_version.get() == "TLS 1.3" or self.tls_version.get() == "TLS 1.5") else cert.Certificate.verify(cert_content, ISSUING_KEYSET.n, tls_version = self.tls_version.get())
 
         if(verified):
             tk.messagebox.showinfo(title = "Verification", message = "The Certificate is correct and valid")
@@ -106,10 +106,14 @@ class App:
             keyset = rsa.RSA()
             text = "RSA\nExponente: " + str(keyset.e) + "\nModulo: " + str(keyset.n) + "\nClave privada: " + str(keyset.d)
             
-        # If TLS version is TLS 1.2, it creates the file this way
+        # If TLS version is TLS 1.3, it creates the file this way
         elif(tls_version == "TLS 1.3"):
            keyset = ecc.S256EC_keyset()
            text = "ECC\nClave publica: " + str(keyset.publicKey) + "\nClave privada: " + str(keyset.privateKey)
+        
+        elif(tls_version == "TLS 1.5"):
+            keyset = ecc.S256EC_keyset()
+            text = "CRYSTALS\nClave publica: " + str(keyset.publicKey) + "\nClave privada: " + str(keyset.privateKey)
 
         ISSUING_KEYSET = keyset
         
@@ -128,7 +132,12 @@ class App:
         keys_content = file.readlines()
         file.close()
 
-        tls_version = "TLS 1.2" if keys_content[0].replace("\n", "") == "RSA" else "TLS 1.3"
+        if(keys_content[0].replace("\n", "") == "RSA"):
+            tls_version = "TLS 1.2"
+        elif(keys_content[0].replace("\n", "") == "ECC"):
+            tls_version = "TLS 1.3"
+        elif(keys_content[0].replace("\n", "") == "CRYSTALS"):
+            tls_version = "TLS 1.5"
 
         # If TLS version is TLS 1.2, it reads the file this way
         if(tls_version == "TLS 1.2"):
@@ -143,7 +152,7 @@ class App:
             ISSUING_KEYSET = rsa.RSA(e = e, n = n, d = d, generate = False)
 
         # If TLS version is TLS 1.3, it reads the file this way
-        elif(tls_version == "TLS 1.3"):
+        elif(tls_version == "TLS 1.3" or tls_version == "TLS 1.5"):
             # Public Key
             line = keys_content[1].replace("Clave publica: S256Point(", "").replace(")\n", "").split(", ")
             publicKey_x = int(line[0], 16)

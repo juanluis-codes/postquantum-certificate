@@ -6,6 +6,7 @@ import RSA as rsa
 import ecc as ecc
 # Hash imports
 import hashlib as h
+from ctypes import *
 
 # Globals
 ISSUING_NAME = "Certlu"
@@ -70,6 +71,27 @@ class Certificate:
             self.signature = ecc.S256EC_signature(s256keyset = issuing_keyset)
             self.signature.sign(public_key_to_sign_hash)
             text = (text + "(" + str(self.signature.R) + "," + hex(self.signature.s) + ")")
+        
+        elif(self.tls_version == "TLS 1.5"):
+            generate_encryption_keys_kyber_c = CDLL('SO/generate_encryption_keys_kyber.so')
+
+            generate_encryption_keys_kyber_c.generate_keys() == 0
+
+            file = open("KEYS/encryption_kyber_keys.txt", "r")
+            generate_encryption_keys_kyber_file_content = file.readlines()
+            file.close()
+
+            text = text + ("CRYSTALS\n Clave publica: " + str(generate_encryption_keys_kyber_file_content[0].replace("Public key: ", "").replace("\n", "")) + "\nFirma: ")
+
+            text_to_sign = str(generate_encryption_keys_kyber_file_content[0].replace("Public key: ", "").replace("\n", ""))
+
+            # Hashing the text and signing it (at the moment with ecc)
+            public_key_to_sign_hash.update(text_to_sign.encode("utf-8"))
+            public_key_to_sign_hash = int(public_key_to_sign_hash.hexdigest().replace("0x", ""), 16)
+            self.signature = ecc.S256EC_signature(s256keyset = issuing_keyset)
+            self.signature.sign(public_key_to_sign_hash)
+            text = (text + "(" + str(self.signature.R) + "," + hex(self.signature.s) + ")")
+        
                          
         # Calculating and adding the fingerprints
         text_to_sha1 = text.replace("\n", "").replace(" ", "") + "HuellasdigitalesSHA-1:"
@@ -183,7 +205,7 @@ class Certificate:
         if(tls_version == "TLS 1.2"):
             start_key_hash = rsa.RSASignature.verify(signature_to_verify, public_key)
             valid_certificate = (hash_key == start_key_hash)
-        else:          
+        else:
             valid_certificate = ecc.S256EC_signature.verify(hash_key, public_key, ecc.S256Point(int(signature_to_verify[0], 16), int(signature_to_verify[1], 16)), int(signature_to_verify[2], 16))
         
 
