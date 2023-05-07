@@ -73,7 +73,7 @@ class Server(Device):
     # No return
     def __init__(self):
         super().__init__()
-        self.certificate = Certificate.Certificate("Server {}".format(self.device_id), "ES", "Almería", "server{}.com".format(self.device_id), "TLS 1.2", ISSUING_KEYSET)
+        self.certificate = Certificate.Certificate("Server {}".format(self.device_id), "ES", "Almería", "server{}.com".format(self.device_id), TLS_VERSION, ISSUING_KEYSET)
         self.certificate_path = os.getcwd() + "/{}.txt".format(self.certificate.organization_domain)
         self.rsacipher = RSA.RSACipher(self.certificate.keyset)
 
@@ -236,8 +236,8 @@ class Client(Device):
                 if("TLS version" in line):
                     tls_version = line.replace("TLS version: ", "").replace("\n", "")
 
-                if("Módulo: " in line):
-                    n = int(line.replace("Módulo: 0x", "").replace("\n", ""), 16)
+                if("Modulo: " in line):
+                    n = int(line.replace("Modulo: 0x", "").replace("\n", ""), 16)
                     break
 
             # Checking the validation of the certificate
@@ -318,7 +318,7 @@ class Session:
 # No Arguments:
 # It returns 0 if succeded
 def read_issuing_keys_file():
-    global ISSUING_KEYSET, TRUSTED_KEY
+    global ISSUING_KEYSET, TRUSTED_KEY, TLS_VERSION
 
     # Open and read the file
     try:
@@ -328,14 +328,23 @@ def read_issuing_keys_file():
     except:
         return -1
     
-    tls_version = "TLS 1.2" if keys_content[0].replace("\n", "") == "RSA" else "TLS 1.3"
+    if(keys_content[0].replace("\n", "") == "RSA"):
+        tls_version = "TLS 1.2"
+    elif(keys_content[0].replace("\n", "") == "ECC"):
+        tls_version = "TLS 1.3"
+    elif(keys_content[0].replace("\n", "") == "CRYSTALS"):
+        tls_version = "TLS 1.5"
+    elif(keys_content[0].replace("\n", "") == "DILITHIUM"):
+        tls_version = "TLS 2.0"
+
+    TLS_VERSION = tls_version
 
     # If TLS version is TLS 1.2, it reads the file this way
     if(tls_version == "TLS 1.2"):
         # Exponent
         e = int(keys_content[1].replace("Exponente: ", "").replace("\n", ""))
         # Module
-        n = int(keys_content[2].replace("Módulo: ", "").replace("\n", ""))
+        n = int(keys_content[2].replace("Modulo: ", "").replace("\n", ""))
         # Assigning the value to the TRUSTED_KEY global
         TRUSTED_KEY = n
         # Private Key
@@ -345,9 +354,9 @@ def read_issuing_keys_file():
         ISSUING_KEYSET = RSA.RSA(e = e, n = n, d = d, generate = False)
 
     # If TLS version is TLS 1.3, it reads the file this way
-    elif(tls_version == "TLS 1.3"):
+    elif(tls_version == "TLS 1.3" or tls_version == "TLS 1.5"):
         # Public Key
-        line = keys_content[1].replace("Clave pública: S256Point(", "").replace(")\n", "").split(", ")
+        line = keys_content[1].replace("Clave publica: S256Point(", "").replace(")\n", "").split(", ")
         public_key_x = int(line[0], 16)
         public_key_y = int(line[1], 16)
         public_key = ecc.S256Point(public_key_x, public_key_y)
@@ -358,7 +367,6 @@ def read_issuing_keys_file():
 
         # Assigning the value to the ISSUING_KEYSET global
         ISSUING_KEYSET = ecc.S256EC_keyset(publicKey = public_key, privateKey = private_key, generate = False)
-
     return 0
 
 
@@ -372,6 +380,7 @@ KEY_FILE = os.getcwd() + "/KEYS/issuing_keys.txt"
 ISSUING_KEYSET = None
 # [GLOBAL] The trusted key is the public key defined by the issuing certificate company
 TRUSTED_KEY = None
+TLS_VERSION = None
 # Reading the key file to get the keyset
 print("Readind the Issuing key file...")
 if(read_issuing_keys_file() == -1):

@@ -1,37 +1,68 @@
+# IMPORTS
 from random import randint
-
-import hashlib
-import hmac
-
+from sympy import *
+# LOCAL IMPORTS
 import GCD as gcd
 
-# Finite Field Element
+# GLOBALS
+# Coefs A and B. The bitcoin curve is y**2 = x**3 + 7
+A = 0
+B = 7
+# PRIME
+P = 2**256 - 2**32 - 977
+# Number of points of the curve
+N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+
+# FieldElement
+# This class defines finite field element
+# Attributes:
+# num -> (int) Finite field element
+# prime -> (int) Finite field prime
 class FieldElement:
-    # Field Element builder
+    # Builder
     def __init__(self, num, prime):
         if num >= prime or num < 0:
-            error = 'Num {} not in field range 0 to {}'.format(num, prime - 1)
+            error = "Num {} not in field range 0 to {}".format(num, prime - 1)
             raise ValueError(error)
         
         self.num = num
         self.prime = prime
 
-    # Represents the Field Element
-    def __repr__(self):
-        return 'FieldElement_{}({})'.format(self.prime, self.num)
+    # Finite field element getter
+    # Return: (int) Finite field element
+    def getNum(self):
+        return self.num
 
-    # Proves that two instances are equal
+    # Finite field prime getter
+    # Return: (int) Finite field prime
+    def getPrime(self):
+        return self.prime
+
+    # Object to string
+    def __repr__(self):
+        return "FieldElement_{}({})".format(self.prime, self.num)
+
+    # This method proves that two instances are equal
+    # Parameters:
+    # other -> (FieldElement) Instance to compare with self
+    # Return: (BOOLEAN) True if equal, False if not equal
     def __eq__(self, other):
         if other is None:
             return False
         
         return self.num == other.num and self.prime == other.prime
 
-    # Proves that two instances are not equal
+    # This method proves that two instances are not equal
+    # Parameters:
+    # other -> (FieldElement) Instance to compare with self
+    # Return: (BOOLEAN) True if not equal, False if equal
     def __ne__(self, other):
         return not (self == other)
 
-    # Adds two elements of the Finite Field
+    # This method adds two elements of the finite field
+    # Parameters:
+    # other -> (FieldElement) Instance to add
+    # Return: (FieldElement) The addition between self and other
     def __add__(self, other):
         if self.prime != other.prime:
             raise TypeError('Cannot add two numbers in different Fields')
@@ -40,7 +71,10 @@ class FieldElement:
         
         return self.__class__(num, self.prime)
 
-    # Subtracts two elements of the Finite Field
+    # This method subtracts two elements of the finite field
+    # Parameters:
+    # other -> (FieldElement) Instance to substract
+    # Return: (FieldElement) The substraction between self and other
     def __sub__(self, other):
         if self.prime != other.prime:
             raise TypeError('Cannot subtract two numbers in different Fields')
@@ -49,7 +83,10 @@ class FieldElement:
 
         return self.__class__(num, self.prime)
 
-    # Multiplies two elements of the Finite Field
+    # This method multiplies two elements of the finite field
+    # Parameters:
+    # other -> (FieldElement) Instance to multiply
+    # Return: (FieldElement) The multiplication between self and other
     def __mul__(self, other):
         if self.prime != other.prime:
             raise TypeError('Cannot multiply two numbers in different Fields')
@@ -58,13 +95,19 @@ class FieldElement:
 
         return self.__class__(num, self.prime)
 
-    # Pow of the Finite Field Element
+    # This method defines the pow of a finite field element
+    # Parameters:
+    # exponent -> (int) Exponent of the pow
+    # Return: (FieldElement) The exponent power of a finite field element
     def __pow__(self, exponent):
         n = exponent % (self.prime - 1)
         num = pow(self.num, n, self.prime)
         return self.__class__(num, self.prime)
 
-    # Divides two elements of the Finite Field
+    # This method divides two elements of the finite field
+    # Parameters:
+    # other -> (FieldElement) Instance to be divided with
+    # Return: (FieldElement) The division between self and other
     def __truediv__(self, other):
         if self.prime != other.prime:
             raise TypeError('Cannot divide two numbers in different Fields')
@@ -73,15 +116,24 @@ class FieldElement:
         
         return self.__class__(num, self.prime)
 
-    # Multiplies by a number (coefficient) the Finite Field Element
+    # This method multiplies by a number the finite field element
+    # Parameters:
+    # coefficient -> (int) Coefficient of the multiplication
+    # Return: (FieldElement) The multiplication between self and coefficient
     def __rmul__(self, coefficient):
         num = (self.num * coefficient) % self.prime
         
         return self.__class__(num=num, prime=self.prime)
 
-# Point in an EC
+# Point
+# This class defines a point in an elliptic curve
+# Attributes:
+# a -> (int), (FieldElement) Elliptic curve a coefficient
+# b -> (int), (FieldElement) Elliptic curve b coefficient
+# x -> (int), (FieldElement) Point x coordinate
+# y -> (int), (FieldElement) Point y coordinate
 class Point:
-    # Point of the EC builder
+    # Builder
     def __init__(self, x, y, a, b):
         self.a = a
         self.b = b
@@ -94,26 +146,49 @@ class Point:
         if self.y**2 != self.x**3 + a * x + b:
             raise ValueError('({}, {}) is not on the curve'.format(x, y))
 
-    # Proves that two instances are equal
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y and self.a == other.a and self.b == other.b
+    # Coefficient A getter
+    # Return: (int), (FieldElement) Coefficient A
+    def getA(self):
+        return self.a
 
-    # Proves that two instances are not equal
-    def __ne__(self, other):
-        return not (self == other)
-
-    # Represents the Point of the EC
+    # Coefficient B getter
+    # Return: (int), (FieldElement) Coefficient B
+    def getB(self):
+        return self.b
+    
+    def getX(self):
+        return self.x
+    
+    def getY(self):
+        return self.y
+        
+    # Object to string
     def __repr__(self):
         if self.x is None:
             return 'Point(infinity)'
-        
         elif isinstance(self.x, FieldElement):
-            return 'Point({},{})_{}_{} FieldElement({})'.format(self.x.num, self.y.num, self.a.num, self.b.num, self.x.prime)
-        
+            return 'Point({},{})_{}_{} FieldElement({})'.format(self.x.getNum(), self.y.getNum(), self.a.getNum(), self.b.getNum(), self.x.prime) 
         else:
             return 'Point({},{})_{}_{}'.format(self.x, self.y, self.a, self.b)
 
-    # Adds two points of the EC
+    # This method proves that two instances are equal
+    # Parameters:
+    # other -> (Point) Instance to compare with self
+    # Return: (BOOLEAN) True if equal, False if not equal
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y and self.a == other.a and self.b == other.b
+
+    # This method proves that two instances are not equal
+    # Parameters:
+    # other -> (Point) Instance to compare with self
+    # Return: (BOOLEAN) True if not equal, False if equal
+    def __ne__(self, other):
+        return not (self == other)
+
+    # This method adds two points of the elliptic curve
+    # Parameters:
+    # other -> (Point) Instance to add
+    # Return: (Point) The addition between self and other
     def __add__(self, other):
         if self.a != other.a or self.b != other.b:
             raise TypeError('Points {}, {} are not on the same curve'.format(self, other))
@@ -142,7 +217,10 @@ class Point:
             y = s * (self.x - x) - self.y
             return self.__class__(x, y, self.a, self.b)
 
-    # Multiplies by a number (coefficient) the EC Point
+    # This method multiplies by a number the point
+    # Parameters:
+    # coefficient -> (int) Coefficient of the multiplication
+    # Return: (Point) The multiplication between self and coefficient
     def __rmul__(self, coefficient):
         coef = coefficient
         current = self
@@ -157,69 +235,143 @@ class Point:
             
         return result
 
-# Coefs A and B. The curve is y2 = x3 + 7
-A = 0
-B = 7
-# PRIME
-P = 2**256 - 2**32 - 977
-# Number of Points of the curve
-N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
-
-# Defines the S256 Finite Field
+# FieldElement
+# This class defines the finite field for the bitcoin elliptic curve
+# Inheritance: FieldElement
 class S256Field(FieldElement):
-    # S256 Field Element builder
+    # Builder
     def __init__(self, num, prime=None):
         super().__init__(num=num, prime=P)
 
-    # Represents the S256 Field Element
+    # Object to string
     def __repr__(self):
         return '{:x}'.format(self.num).zfill(64)
 
-# Defines the S256 EC. The curve is y2 = x3 + 7
+# S256Point
+# This class defines a point in the bitcoin elliptic curve
+# Inheritance: S256Point
 class S256Point(Point):
-    # S256 EC builder
+    # Builder
     def __init__(self, x, y, a=None, b=None):
         a, b = S256Field(A), S256Field(B)
         
         if type(x) == int:
             super().__init__(x=S256Field(x), y=S256Field(y), a=a, b=b)
-            
         else:
             super().__init__(x=x, y=y, a=a, b=b)
 
-    # Represents the S256 EC
+    # Object to string
     def __repr__(self):
         if self.x is None:
             return 'S256Point(infinity)'
-        
         else:
             return 'S256Point({}, {})'.format(self.x, self.y)
 
-    # Multiplies by a number (coefficient) the EC Point
+    # This method multiplies by a number the point
+    # Parameters:
+    # coefficient -> (int) Coefficient of the multiplication
+    # Return: (S256Point) The multiplication between self and coefficient
     def __rmul__(self, coefficient):
         coef = coefficient % N
         return super().__rmul__(coef)
     
+    # This method generates a random point of the bitcoin curve
+    # Return: (S256Point) Random point of the bitcoin curve
+    def generate_random_point():
+        return randint(1, P - 1) * G
 
-class S256EC_keyset:
-    # Keyset builder
-    def __init__(self, publicKey = None, privateKey = 0, generate = True):
+    # This method encrypts a point of the curve
+    # Parameters:
+    # to_encrypt -> (S256Point) Point to encrypt
+    # public_key -> (S256Point) ECDSA public key
+    # Return: (String) The kG, q encryption set
+    def encrypt(to_encrypt, public_key):
+        k = randint(2, N - 1)
+        kG = k * G
+        kP = k * public_key
+        q = to_encrypt + kP
+        encryption = ("{} {}").format(kG, q)
+        return encryption
+
+    # This method decrypts th kG, q encryption set
+    # Parameters:
+    # kG -> (S256Point) kG encryption
+    # q -> (S256Point) q encryption
+    # private_key -> (int) ECDSA private key
+    # Return: (S256Point) The message decrypted
+    def decrypt(kG, q, private_key):
+        decryption = q + ((N - 1) * (private_key * kG))
+        return decryption
+    
+# S256Keyset
+# This class defines a ECDSA keyset
+# Attributes:
+# public_key -> (S256Point) ECDSA public key
+# private_key -> (int) ECDSA private key
+class S256Keyset:
+    # Builder
+    def __init__(self, public_key = None, private_key = 0, generate = True):
         if(not(generate)):
-            self.publicKey = publicKey
-            self.privateKey = privateKey
+            self.public_key = public_key
+            self.private_key = private_key
             
         else:
-            self.privateKey = randint(2, N - 1)
-            self.publicKey = self.privateKey * G
+            self.private_key = randint(2, N - 1)
+            self.public_key = self.private_key * G
 
-    # Represents the S256EC Keyset
+    # Public key getter
+    # Return: (S256Point) ECDSA public key
+    def getPublicKey(self):
+        return self.public_key
+
+    # Private key getter
+    # Return: (int) ECDSA private key
+    def getPrivateKey(self):
+        return self.private_key
+
+    # Object to string
     def __repr__(self):
-        return ("Private key = {}\n\nPublic key = {}").format(self.privateKey, self.publicKey)
-        
-class S256EC_signature:
+        return ("[Public key: {}, Private key: {}]").format(self.public_key, self.private_key)
+
+# S256Signature
+# This class defines the methods for a ECDSA signature
+# Attributes:
+# s256keyset -> (S256Keyset) ECDSA keyset
+class S256Signature:
     def __init__(self, s256keyset):
         self.s256keyset = s256keyset
-        
+        self.R = None
+        self.s = None
+
+    # ECDSA keyset getter
+    # Return: (S256Keyset) ECDSA keyset
+    def getECDSAKeyset(self):
+        return self.s256keyset
+    
+    # Public key getter
+    # Return: (S256Point) ECDSA public key
+    def getPublicKey(self):
+        return self.s256keyset.getPublicKey()
+
+    # Private key getter
+    # Return: (int) ECDSA private key
+    def getPrivateKey(self):
+        return self.s256keyset.getPrivateKey()
+    
+    # ECDSA signature R getter
+    # Return: (S256Point) ECDSA signature R getter
+    def getR(self):
+        return self.R
+
+    # ECDSA signature s getter
+    # Return: (int) ECDSA signature s getter
+    def getS(self):
+        return self.s
+
+    # This method signs a message using the ECDSA algorithm
+    # Parameters:
+    # to_sign -> (S256Point) Message to sign
+    # Return: (int) Signed message
     def sign(self, to_sign):
         k = randint(2, N - 1)
         x = gcd.GCD(k, N)
@@ -229,33 +381,32 @@ class S256EC_signature:
             x = gcd.GCD(k, N)
         
         R = k * G
-        r = R.x.num % N
+        r = R.x.getNum() % N
         
         while(r == 0):
             k = gcd.GCD(randint(2, N - 1), N)
             R = k * G
             r = R.x % N
 
-        s = ((to_sign - (r * self.s256keyset.privateKey)) * x.u) % N
+        s = ((to_sign - (r * self.s256keyset.getPrivateKey())) * x.getU()) % N
 
         self.R = R
         self.s = s
 
-            
-    
-    def verify(text_to_verify, publicKey, R, s):
-        mP = text_to_verify * G
-        rQ = R.x.num * publicKey
+    # This method verifies a message using the RSA algorithm
+    # Parameters:
+    ########
+    # to_verify -> (int) Message to verify
+    # public_key -> (S256Point) Public key
+    # R -> (S256Point) Signature to verify
+    # s -> (int) Signature to verify
+    # Return: (boolean) True if verified false if not verified
+    def verify(to_verify, public_key, R, s):
+        mP = to_verify * G
+        rQ = R.x.getNum() * public_key
         sR = s * R
         return (mP == (rQ + sR))
-        
+
+# GLOBALS
 # Generator Point
 G = S256Point(0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798,0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
-
-# Initial coordinates
-x1 = FieldElement(8, P)
-y1 = FieldElement(91736135629086734185706894124002126994554994840140056297753929940646699135966, P)
-
-# M Point encrypted
-q = S256Point(x1,y1)
-kG = S256Point(x1,y1)
