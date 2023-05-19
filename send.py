@@ -210,7 +210,6 @@ class App:
 
             aes_key = int.from_bytes(aes_key, byteorder=sys.byteorder)
             nonce = int(text_received[1])
-            
         return [aes_key, nonce]
 
     # This method defines how to receive the validation
@@ -228,7 +227,7 @@ class App:
             sshpass_command = 'sshpass -p {} ssh -o StrictHostKeyChecking=no {}@{}'.format(password, username, ip)
             subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', sshpass_command])
         else:
-            tk.messagebox.showerror(title = "Error en la verificación", message = "El certificado enviado no es válido")
+            tk.messagebox.showerror(title = "Error en la verificación", message = "Conexión fallida, el nonce recibido no es correcto")
 
     # This method controls the connections. It gets called when the connection button is pressed
     # Return: (void)
@@ -259,7 +258,7 @@ class App:
         try:
             with socket.create_connection((self.target_ip.get(), 6190)) as conn:
                 App._send(conn, 0, filename)
-                conn.sendall(("\n" + self.target_username.get()).encode("utf-8"))
+                conn.sendall(self.target_username.get().encode("utf-8"))
                 conn.sendall(("\n" + getpass.getuser()).encode("utf-8"))
         except OSError as error:
             print("OSError:", error)
