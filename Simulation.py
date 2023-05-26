@@ -542,7 +542,7 @@ title = pyfiglet.figlet_format("TLS SIM by JL")
 print(title)
 
 # Reading the key file to get the keyset
-print("Readind the issuing key file...")
+print("Reading the issuing key file...")
 if(_read_issuing_keys_file() == -1):
     print("Something went wrong... check if the file is correctly created and try it again.")
     exit(-1)
