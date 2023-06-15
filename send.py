@@ -110,7 +110,14 @@ class App:
     # filename -> (String) Name of the file
     # Return: (List) It returns [aes_key, nonce] if succeded, [] if not    
     def _rcvKey(sck: socket.socket, tls_version, filename):
-        text_received = sck.recv(8192)
+        text_received = b''
+        while True:
+            data = sck.recv(1024)
+            if not data:
+                break
+            text_received += data
+        # text_received = sck.recv(16384)
+        
         # Receive the not verificated messages
         if(text_received.decode() == "false 1"):
             tk.messagebox.showerror(title = "Error en la IP", message = "El dominio desde el que se recibe la conexión no es el mismo que el del certificado")
@@ -258,7 +265,7 @@ class App:
         try:
             with socket.create_connection((self.target_ip.get(), 6190)) as conn:
                 App._send(conn, 0, filename)
-                conn.sendall(self.target_username.get().encode("utf-8"))
+                conn.sendall(("\n" + self.target_username.get()).encode("utf-8"))
                 conn.sendall(("\n" + getpass.getuser()).encode("utf-8"))
         except OSError as error:
             print("OSError:", error)
