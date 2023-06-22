@@ -368,29 +368,31 @@ def handleClient(conn, address, ip):
             conn.send("false 1".encode())
 
         return
-
+    
+    verified_certificate = False
     # Verifying the certificate depending on the TLS version
     if(tls_version == "TLS 1.2"):
-        verified = verify(cert_content, "{},{}".format(ISSUING_KEYSET_RSA.getN(), ISSUING_KEYSET_RSA.getE()), tls_version = tls_version)
+        verified_certificate = verify(cert_content, "{},{}".format(ISSUING_KEYSET_RSA.getN(), ISSUING_KEYSET_RSA.getE()), tls_version = tls_version)
     elif(tls_version == "TLS 1.3" or tls_version == "TLS 1.5"):
-        verified = verify(cert_content, ISSUING_KEYSET_ECC.getPublicKey() if (tls_version == "TLS 1.3") else ISSUING_KEYSET_CRYSTALS.getPublicKey(), tls_version = tls_version)
+        verified_certificate = verify(cert_content, ISSUING_KEYSET_ECC.getPublicKey() if (tls_version == "TLS 1.3") else ISSUING_KEYSET_CRYSTALS.getPublicKey(), tls_version = tls_version)
     elif(tls_version == "TLS 2.0"):
-        verified = verify(cert_content, None, "TLS 2.0")
+        verified_certificate = verify(cert_content, None, "TLS 2.0")
 
+    verified_user = False
     sender_user = ""
     possible_target_users = None
-    if(verified):
+    if(verified_certificate):
         for line in user_access:
             sender_user = line.replace("\n", "").split("/")
             if(sender_user[0] in username):
                 possible_target_users = sender_user[1].split(",")
                 if(not(target_username in possible_target_users)):
-                    verified = False
+                    verified_user = False
 
 
     # If the certificate is not valid, then the connection gets cancelled
     # CANCELLED CONNECTION
-    if(not(verified)):
+    if(not(verified_certificate) and not(verified_user)):
         with socket.create_connection((ip_addr, 6191)) as conn:
             try:
                 with open('LOG/failed.json') as file:
@@ -403,7 +405,7 @@ def handleClient(conn, address, ip):
                 'Dominio:': accepted_ip,
                 'Nombre': name,
                 'Fecha': str(datetime.datetime.now()),
-                'Motivo': "Conectado desde otra IP no permitida en el certificado"})
+                'Motivo': "Certificado no valido" if(not(verified_certificate)) else "Se conecta desde un usuario no permitido"})
             with open('LOG/failed.json', 'w') as file:
                 json.dump(failed_data, file, indent=4)
 
