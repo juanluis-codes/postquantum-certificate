@@ -481,9 +481,9 @@ def handleClient(conn, address, ip):
 
             try:
                 with open('LOG/accepted.json') as file:
-                    failed_data = json.load(file)
+                    accepted_data = json.load(file)
             except IOError:
-                    failed_data = failed_data
+                    accepted_data = accepted_data
 
             accepted_data['conexiones'].append({
                 'IP': ip_addr,
